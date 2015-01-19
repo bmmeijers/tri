@@ -1,0 +1,4 @@
+include *
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *~
