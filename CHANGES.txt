@@ -4,7 +4,8 @@ Changelog for tri
 0.2 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- polygon_as_points_and_segments function added.
+- ConvexHullIterator added (as alias for TriangleIterator).
 
 
 0.1 (2015-01-21)

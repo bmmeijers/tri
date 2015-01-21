@@ -105,7 +105,13 @@ class FiniteEdgeIterator(object):
 
 
 class TriangleIterator(object):
-    def __init__(self, triangulation, finite_only = True):
+    """Iterator over all triangles that are in the triangle data structure.
+    The finite_only parameter determines whether only the triangles in the
+    convex hull of the point set are iterated over, or whether also infinite
+    triangles are considered.
+
+    """
+    def __init__(self, triangulation, finite_only=False):
         self.triangulation = triangulation
         self.finite_only = finite_only
         self.visited = set()
@@ -118,26 +124,82 @@ class TriangleIterator(object):
         ret = None
         while self.to_visit_stack:
             triangle = self.to_visit_stack.pop()
-            # FIXME: put this behaviour back???
-#             if self.finite_only == True:
-#                 if triangle.is_finite and \
-#                     id(triangle) not in self.visited:
-#                     ret = triangle
-#             else:
-            if id(triangle) not in self.visited:
+            # determine whether we should 'emit' the triangle
+            if self.finite_only == True and id(triangle) not in self.visited and triangle.is_finite:
                 ret = triangle
-            else:
-                continue
-#             print id(triangle), triangle
+            elif self.finite_only == False and id(triangle) not in self.visited:
+                ret = triangle
             self.visited.add(id(triangle))
             # NOTE: from an external triangle we can get
             # to a triangle in the triangulation multiple times
-            for i in range(3):
+            for i in xrange(3):
                 neighbour = triangle.neighbours[i]
                 if neighbour is None:
-                    #print( "ERROR: empty neighbour found for {0}, {1}, {2}".format(i, id(triangle), triangle))
                     continue
                 elif id(neighbour) not in self.visited:
+                    self.to_visit_stack.append(neighbour)
+            if ret is not None:
+                return ret
+        else:
+            raise StopIteration()
+
+
+class ConvexHullTriangleIterator(TriangleIterator):
+    """Iterator over all triangles that are in the convex hull of the 
+    point set (excludes infinite triangles).
+
+    """
+    def __init__(self, triangulation):
+        # Actually, we are an alias for TriangleIterator 
+        # with finite_only set to True
+        super(ConvexHullTriangleIterator, self).__init__(triangulation, True)
+
+
+class InteriorTriangleIterator(object):
+    """Iterator over all triangles that are enclosed by constraints
+
+    Assumes that a polygon has been triangulated which is closed properly
+    """
+    def __init__(self, triangulation):
+        constrained = False
+        self.triangulation = triangulation
+        self.visited = set([id(self.triangulation.external)])
+        self.to_visit_stack = [self.triangulation.external.neighbours[2]]
+        # walk to an interior triangle
+        while not constrained and self.to_visit_stack:
+            triangle = self.to_visit_stack.pop()
+            self.visited.add(id(triangle))
+            # NOTE: from an external triangle we can get
+            # to a triangle in the triangulation multiple times
+            for i in xrange(3):
+                constrained = triangle.constrained[i]
+                neighbour = triangle.neighbours[i]
+                if constrained:
+                    self.to_visit_stack = [neighbour]
+                    self.visited = set()
+                    break
+                if id(neighbour) not in self.visited:
+                    self.to_visit_stack.append(neighbour)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        ret = None
+        constrained = False
+        while self.to_visit_stack:
+            triangle = self.to_visit_stack.pop()
+            if id(triangle) not in self.visited:
+                ret = triangle
+            self.visited.add(id(triangle))
+            # NOTE: from an external triangle we can get
+            # to a triangle in the triangulation multiple times
+            for i in xrange(3):
+                constrained = triangle.constrained[i]
+                if constrained:
+                    continue
+                neighbour = triangle.neighbours[i]
+                if id(neighbour) not in self.visited:
                     self.to_visit_stack.append(neighbour)
             if ret is not None:
                 return ret
@@ -538,52 +600,7 @@ class PointInserter(object):
         """
         self.initialize(points)
         for j, pt in enumerate(points):
-            v = Vertex(pt[0], pt[1])
-            t0 = self.get_triangle_contains(v)
-            # skip insertion of point, if it is on same location already there
-            for corner in t0.vertices:
-                if corner.x == v.x and corner.y == v.y:
-                    continue
-            self.triangulation.vertices.append(v)
-            a, b, c = t0.vertices
-            # neighbours outside triangle to insert to
-            neighbours = [t0.neighbours[0], t0.neighbours[1]]
-            neighbouridx = [n.neighbours.index(t0) if n is not None else None for n in neighbours]
-            # make new triangles
-            t1 = Triangle(b, c, v)
-            t2 = Triangle(c, a, v)
-            t0.vertices[2] = v
-            # update triangle pointers of vertices
-            a.triangle = t0
-            b.triangle = t0
-            v.triangle = t0
-            c.triangle = t1
-            # link them up properly -- use neighbours outside triangle to insert to
-            # external links
-            # 2 * 2
-            if neighbours[0] is not None:
-                side = neighbouridx[0]
-                self.link_1dir(neighbours[0], side, t1)
-            self.link_1dir(t1, 2, neighbours[0])
-            if neighbours[1] is not None:
-                side = neighbouridx[1]
-                self.link_1dir(neighbours[1], side, t2)
-            self.link_1dir(t2, 2, neighbours[1])
-            # internal links 
-            # 3 * 2
-            self.link_2dir(t0, 0, t1, 1)
-            self.link_2dir(t1, 0, t2, 1)
-            self.link_2dir(t2, 0, t0, 1)
-            #
-            triangles = self.triangulation.triangles
-            triangles.extend([t1, t2])
-            # check if triangles are delaunay, and flip
-            # edges of triangle just inserted into are queued for checking
-            # Delaunay criterion
-            self.queue.append((t2, 2))
-            self.queue.append((t1, 2))
-            self.queue.append((t0, 2))
-            self.delaunay()
+            self.append(pt)
             if (j % 10000) == 0:
                 print "", datetime.now(), j
             #check_consistency(triangles)
@@ -609,6 +626,59 @@ class PointInserter(object):
         self.link_2dir(large, 2, self.triangulation.external, 2)
         for v in vertices:
             v.triangle = large
+
+    def append(self, pt):
+        """Appends one point to the triangulation.
+
+        This method assumes that the triangulation is initialized
+        and the point lies inside the bounding box used for initializing.
+        """
+        v = Vertex(pt[0], pt[1])
+        t0 = self.get_triangle_contains(v)
+        # skip insertion of point, if it is on same location already there
+        for corner in t0.vertices:
+            if corner.x == v.x and corner.y == v.y:
+                continue
+        self.triangulation.vertices.append(v)
+        a, b, c = t0.vertices
+        # neighbours outside triangle to insert to
+        neighbours = [t0.neighbours[0], t0.neighbours[1]]
+        neighbouridx = [n.neighbours.index(t0) if n is not None else None for n in neighbours]
+        # make new triangles
+        t1 = Triangle(b, c, v)
+        t2 = Triangle(c, a, v)
+        t0.vertices[2] = v
+        # update triangle pointers of vertices
+        a.triangle = t0
+        b.triangle = t0
+        v.triangle = t0
+        c.triangle = t1
+        # link them up properly -- use neighbours outside triangle to insert to
+        # external links
+        # 2 * 2
+        if neighbours[0] is not None:
+            side = neighbouridx[0]
+            self.link_1dir(neighbours[0], side, t1)
+        self.link_1dir(t1, 2, neighbours[0])
+        if neighbours[1] is not None:
+            side = neighbouridx[1]
+            self.link_1dir(neighbours[1], side, t2)
+        self.link_1dir(t2, 2, neighbours[1])
+        # internal links 
+        # 3 * 2
+        self.link_2dir(t0, 0, t1, 1)
+        self.link_2dir(t1, 0, t2, 1)
+        self.link_2dir(t2, 0, t0, 1)
+        #
+        triangles = self.triangulation.triangles
+        triangles.extend([t1, t2])
+        # check if triangles are delaunay, and flip
+        # edges of triangle just inserted into are queued for checking
+        # Delaunay criterion
+        self.queue.append((t2, 2))
+        self.queue.append((t1, 2))
+        self.queue.append((t0, 2))
+        self.delaunay()
 
     def get_triangle_contains(self, p):
         """Gets the triangle on which point p is located from the triangulation
@@ -1553,6 +1623,19 @@ def test_square():
     triangulate([(0.,0.), (10.,0.), (10., 10.), (0.,10.)], 
                 [(0,1), (1,2), (2,3), (3,0)])
 
+def polygon_as_points_and_segments(polygon):
+    points = []
+    segments = []
+    points_idx = {}
+    for ring in polygon:
+        for pt in ring:
+            if pt not in points_idx:
+                points_idx[pt] = len(points)
+                points.append(pt)
+        for start, end in zip(ring[:-1], ring[1:]):
+            segments.append((points_idx[start], points_idx[end]))
+    return points, segments
+
 def test_poly():
     from connection import connection
     db = connection(True)
@@ -1574,7 +1657,7 @@ def test_poly():
     sql = 'select geometry from clc_edge where left_face_id in (45347) or right_face_id in (45347)'
     #sql = 'select geometry from clc_edge where left_face_id in (28875) or right_face_id in (28875)'
     # 45270
-#     sql = 'select geometry from clc_edge where left_face_id in (45270) or right_face_id in (45270)'
+    sql = 'select geometry from clc_edge where left_face_id in (45270) or right_face_id in (45270)'
     for geom, in db.recordset(sql):
         lines.append(geom)
     points, segments = polygon_input(lines)
@@ -1596,6 +1679,15 @@ def test_poly():
                                                                              trafo.centers[segment[1]]))
                 except:
                     pass
+    if True:
+        with open("/tmp/alltris.wkt", "w") as fh:
+                    output_triangles([t for t in TriangleIterator(dt, 
+                                                                  finite_only=False)], 
+                                     fh)
+        with open("/tmp/allvertices.wkt", "w") as fh:
+            output_vertices(dt.vertices, fh)
+        with open("/tmp/interiortris.wkt", "w") as fh:
+                    output_triangles([t for t in InteriorTriangleIterator(dt)], fh) 
 
 def test_small():
 #     pts = [(3421275.7657, 3198467.4977), 
@@ -1613,8 +1705,8 @@ def test_small():
 
 if __name__ == "__main__":
 #     test_small()
-#     test_poly()
-    test_square()
+    test_poly()
+#     test_square()
 #     test_circle()
 #     test_incremental()
 
