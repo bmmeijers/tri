@@ -52,6 +52,7 @@ except ImportError:
 # FIXME
 #
 # * When to remove external triangle and infinite triangles?
+#   And should they be stored in the Triangulation object?
 #
 # * hcpo methods are not robust against small counts of points
 #
