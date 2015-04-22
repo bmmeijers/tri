@@ -51,7 +51,7 @@ setup(
     package_dir = {"": "src"},
     author = "Martijn Meijers",
     author_email = "b.m.meijers@tudelft.nl",
-    description = "Tri - Constrained Delaunay Triangulation for Python",
+    description = "Tri - (Constrained) Delaunay Triangulation of Planar Straight Line Graphs",
     url = "https://bitbucket.org/bmmeijers/tri/",
     license = "MIT license",
     ext_modules = EXT_MODULES,

@@ -4,8 +4,10 @@ Changelog for tri
 0.2 (unreleased)
 ----------------
 
-- polygon_as_points_and_segments function added.
+- ToPointsAndSegments class added.
 - ConvexHullIterator added (as alias for TriangleIterator).
+- RegionatedIterator added.
+- Initial VoronoiTransformer added.
 
 
 0.1 (2015-01-21)

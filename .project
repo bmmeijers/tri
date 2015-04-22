@@ -5,6 +5,8 @@
 	<projects>
 		<project>connection</project>
 		<project>predicates</project>
+		<project>splitarea</project>
+		<project>topomap</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
