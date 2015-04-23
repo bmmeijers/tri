@@ -213,20 +213,24 @@ class InteriorTriangleIterator(object):
 
 class RegionatedTriangleIterator(object):
     """Iterator over all triangles that are fenced off by constraints.
-
     The constraints fencing off triangles determine the regions.
+    The iterator yields a tuple: (region number, depth, triangle).
 
-    The iterator yields a tuple: (region number, triangle)
-    Note, the region number can increase, e.g. 0, 1, 476, 1440, ..., etc.
+    Note:
 
-    The first group is always the infinite part of the domain around the
-    feature (the parts of the convex hull not belonging to any interior part).
+    - The region number can increase in unexpected ways, e.g. 0, 1, 476, 1440, 
+    ..., etc.
+    - The depth gives the nesting of the regions.
+
+    The first group is always the infinite part (at depth 0) of the domain 
+    around the feature (the parts of the convex hull not belonging to any
+    interior part).
     """
     def __init__(self, triangulation):
         # start at the exterior
         self.triangulation = triangulation
         self.visited = set([id(self.triangulation.external)])
-        self.to_visit_stack = [self.triangulation.external.neighbours[2]]
+        self.to_visit_stack = [(self.triangulation.external.neighbours[2], 0)]
         self.later = []
         self.group = 0
 
@@ -238,7 +242,7 @@ class RegionatedTriangleIterator(object):
             # visit all triangles in the exterior, subsequently visit
             # all triangles that are enclosed by a set of segments
             while self.to_visit_stack:
-                triangle = self.to_visit_stack.pop()
+                triangle, depth = self.to_visit_stack.pop()
                 assert triangle is not None
                 if triangle in self.visited:
                     continue
@@ -247,17 +251,17 @@ class RegionatedTriangleIterator(object):
                     constrained = triangle.constrained[i]
                     neighbour = triangle.neighbours[i]
                     if constrained and neighbour not in self.visited:
-                        self.later.append(neighbour)
+                        self.later.append((neighbour, depth + 1))
                     elif neighbour is not None and neighbour not in self.visited:
-                        self.to_visit_stack.append(neighbour)
-                return (self.group, triangle)
+                        self.to_visit_stack.append((neighbour, depth))
+                return (self.group, depth, triangle)
             # flip the next level with this
             if self.later:
                 self.group += 1
                 for _ in xrange(len(self.later)):
-                    t = self.later.pop()
+                    t, d = self.later.pop()
                     if id(t) not in self.visited:
-                        self.to_visit_stack = [t]
+                        self.to_visit_stack = [(t, d)]
                         break
         else:
             raise StopIteration()
