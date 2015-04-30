@@ -270,7 +270,9 @@ class RegionatedTriangleIterator(object):
 class StarEdgeIterator(object):
     """Returns iterator over edges in the star of the vertex
     
-    The edges are returned in counterclockwise order around the vertex
+    The edges are returned in counterclockwise order around the vertex.
+    The triangles that the edges are associated with share the vertex 
+    that this iterator is constructed with.
     """
     def __init__(self, vertex): #, finite_only = True):
         self.vertex = vertex
@@ -294,6 +296,7 @@ class StarEdgeIterator(object):
             #    print [id(t) for t in self.visited]
             #    raise
             #side = (self.side + 1) % 3
+            assert self.triangle.vertices[side] is self.vertex
             e = Edge(self.triangle, side)
             self.side = ccw(side)
             if self.triangle is self.start:
@@ -443,7 +446,7 @@ class Vertex(object):
         elif i == 1:
             return self.y
         else:
-            raise ValueError("No such ordinate: {}".format(i))
+            raise IndexError("No such ordinate: {}".format(i))
 
     def distance(self, other):
         """Cartesian distance to other point """
@@ -1554,7 +1557,7 @@ def _hcpo(points, out, sr = 0.75, minsz = 10):
                         |
     <-------------------+
     """
-    shuffle(points)
+    # shuffle(points) # always randomize even for small points
     stack = [points]
     while stack:
         # split the remaining list in 2 pieces
@@ -1577,7 +1580,7 @@ def _hcpo(points, out, sr = 0.75, minsz = 10):
 def hcpo(points, sr = 0.75, minsz = 10):
     """Based on list with points, return a new, randomized list with points
     where the points are randomly ordered, but then sorted with enough spatial
-    coherence to be useful to get speed up
+    coherence to be useful to not get worst case flipping behaviour
     """
     # Build a new list with points, ordered along hierarchical curve
     # with levels
