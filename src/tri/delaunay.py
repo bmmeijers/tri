@@ -343,11 +343,11 @@ def apex(side):
 
 def orig(side):
     """Given a side, give the origin of the triangle """
-    return (side + 1) % 3
+    return (side + 1) % 3 # ccw(side)
 
 def dest(side):
     """Given a side, give the destination of the triangle """
-    return (side - 1) % 3
+    return (side - 1) % 3 # cw(side)
 
 def output_vertices(V, fh):
     """Output list of vertices as WKT to text file (for QGIS)"""
@@ -363,6 +363,10 @@ def output_triangles(T, fh):
             continue
         fh.write("{0};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]}\n".format(id(t), t, [id(n) for n in t.neighbours], [id(v) for v in t.vertices]))
 
+def output_edges(E, fh):
+    fh.write("id;side;wkt\n")
+    for e in E:
+        fh.write("{0};{1};LINESTRING({2[0][0]} {2[0][1]}, {2[1][0]} {2[1][1]})\n".format(id(e.triangle), e.side, e.segment))
 # -- unused helper functions
 # def left_or_right(area):
 #     if area > 0:
@@ -544,8 +548,8 @@ class Edge(object):
         self.triangle = triangle
         self.side = side
 
-    def __str__(self):
-        return "{}={}={}".format(self.side, ", ".join(map(str, self.segment)), self.triangle)
+#     def __str__(self):
+#         return "{}={}={}".format(self.side, ", ".join(map(str, self.segment)), self.triangle)
 
     @property
     def segment(self):
@@ -871,8 +875,8 @@ class PointInserter(object):
 
         If t0 and t1 are two triangles sharing a common edge AB,
         the method replaces ABC and BAD triangles by DCA and DBC, respectively.
-        To be fast, this method supposed that input triangles share a common
-        edge and that this common edge is known.
+
+        Pre-condition: triangles t0/t1 share a common edge and the edge is known
         """
         self.flips += 1
 
@@ -1810,7 +1814,6 @@ if __name__ == "__main__":
 #     test_square()
 #     test_circle()
 #     test_incremental()
-
 
 #     test_cpo()
 #     test_flip()
