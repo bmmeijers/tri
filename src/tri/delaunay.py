@@ -7,12 +7,15 @@ from random import shuffle
 from itertools import chain
 from datetime import datetime
 from collections import defaultdict
+from collections import defaultdict
+import logging
 try:
     from predicates import orient2d, incircle
 except ImportError:
     warnings.warn(
     "Robust predicates not available, falling back on non-robust implementation"
     )
+#     logging.warning("Robust predicates not available, falling back on non-robust implementation")
     def orient2d(pa, pb, pc):
         """Direction from pa to pc, via pb, where returned value is as follows:
 
@@ -262,6 +265,124 @@ class RegionatedTriangleIterator(object):
                     t, d = self.later.pop()
                     if id(t) not in self.visited:
                         self.to_visit_stack = [(t, d)]
+                        break
+        else:
+            raise StopIteration()
+
+
+class ConvexHullTriangleIterator(TriangleIterator):
+    """Iterator over all triangles that are in the convex hull of the 
+    point set (excludes infinite triangles).
+
+    """
+    def __init__(self, triangulation):
+        # Actually, we are an alias for TriangleIterator 
+        # with finite_only set to True
+        super(ConvexHullTriangleIterator, self).__init__(triangulation, True)
+
+
+class InteriorTriangleIterator(object):
+    """Iterator over all triangles that are enclosed by constraints
+
+    Assumes that a polygon has been triangulated which is closed properly
+    and that the polygon consists of *exactly one* connected component!
+    """
+    def __init__(self, triangulation):
+        constrained = False
+        self.triangulation = triangulation
+        self.visited = set([id(self.triangulation.external)])
+        self.to_visit_stack = [self.triangulation.external.neighbours[2]]
+        # walk to an interior triangle
+        while not constrained and self.to_visit_stack:
+            triangle = self.to_visit_stack.pop()
+            assert triangle is not None
+            self.visited.add(id(triangle))
+            # NOTE: from an external triangle we can get
+            # to a triangle in the triangulation multiple times
+            for i in xrange(3):
+                constrained = triangle.constrained[i]
+                neighbour = triangle.neighbours[i]
+                if constrained:
+                    self.to_visit_stack = [neighbour]
+                    self.visited = set()
+                    break
+                if neighbour is not None and id(neighbour) not in self.visited:
+                    self.to_visit_stack.append(neighbour)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        ret = None
+        constrained = False
+        while self.to_visit_stack:
+            triangle = self.to_visit_stack.pop()
+            if id(triangle) not in self.visited:
+                ret = triangle
+            self.visited.add(id(triangle))
+            # NOTE: from an external triangle we can get
+            # to a triangle in the triangulation multiple times
+            for i in xrange(3):
+                constrained = triangle.constrained[i]
+                if constrained:
+                    continue
+                neighbour = triangle.neighbours[i]
+                if id(neighbour) not in self.visited:
+                    self.to_visit_stack.append(neighbour)
+            if ret is not None:
+                return ret
+        else:
+            raise StopIteration()
+
+
+
+class RegionatedTriangleIterator(object):
+    """Iterator over all triangles that are fenced off by constraints.
+
+    The constraints fencing off triangles determine the regions.
+
+    The iterator yields a tuple: (region number, triangle)
+    Note, the region number can increase, e.g. 0, 1, 476, 1440, ..., etc.
+
+    The first group is always the infinite part of the domain around the
+    feature (the parts of the convex hull not belonging to any interior part).
+    """
+    def __init__(self, triangulation):
+        # start at the exterior
+        self.triangulation = triangulation
+        self.visited = set([id(self.triangulation.external)])
+        self.to_visit_stack = [self.triangulation.external.neighbours[2]]
+        self.later = []
+        self.group = 0
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        while self.to_visit_stack or self.later:
+            # visit all triangles in the exterior, subsequently visit
+            # all triangles that are enclosed by a set of segments
+            while self.to_visit_stack:
+                triangle = self.to_visit_stack.pop()
+                assert triangle is not None
+                if triangle in self.visited:
+                    continue
+                self.visited.add(triangle)
+                for i in xrange(3):
+                    constrained = triangle.constrained[i]
+                    neighbour = triangle.neighbours[i]
+                    if constrained and neighbour not in self.visited:
+                        self.later.append(neighbour)
+                    elif neighbour is not None and neighbour not in self.visited:
+                        self.to_visit_stack.append(neighbour)
+                return (self.group, triangle)
+            # flip the next level with this
+            if self.later:
+                self.group += 1
+                for _ in xrange(len(self.later)):
+                    t = self.later.pop()
+                    if id(t) not in self.visited:
+                        self.to_visit_stack = [t]
                         break
         else:
             raise StopIteration()
@@ -579,9 +700,9 @@ def triangulate(points, infos=None, segments=None):
     # for every point
     if len(points) == 0:
         raise ValueError("we cannot triangulate empty point list")
-    print "start", datetime.now()
-    print ""
-    print "pre-processing"
+    logging.debug( "start "+ str(datetime.now()) )
+    logging.debug( "" )
+    logging.debug( "pre-processing" )
     start = time.clock()
     # points without info
     points = [(pt[0], pt[1], key) for key, pt in enumerate(points)]
@@ -597,21 +718,21 @@ def triangulate(points, infos=None, segments=None):
         if infos is not None:
             infos= [(index_translation[info[0]], info[1]) for info in infos]
     end = time.clock()
-    print end - start, "secs"
-    print ""
-    print "triangulating", len(points), "points"
+    logging.debug( str(end - start) + " secs" )
+    logging.debug( "" )
+    logging.debug( "triangulating " + str(len(points)) + " points" )
     # add points, using incremental construction triangulation builder
     dt = Triangulation()
     start = time.clock()
     incremental = PointInserter(dt)
     incremental.insert(points)
     end = time.clock()
-    print end - start, "secs"
-    print len(dt.vertices), "vertices"
-    print len(dt.triangles), "triangles"
-    print incremental.flips, "flips"
+    logging.debug( str(end - start) + " secs")
+    logging.debug( str(len(dt.vertices)) + " vertices")
+    logging.debug( str(len(dt.triangles)) + " triangles")
+    logging.debug( str(incremental.flips) + " flips")
     if len(dt.vertices) > 0:
-        print float(incremental.flips) / len(dt.vertices), "flips per insert"
+        logging.debug( str( float(incremental.flips) / len(dt.vertices)) + " flips per insert")
 
     # check links of triangles
 #     check_consistency(dt.triangles)
@@ -619,24 +740,30 @@ def triangulate(points, infos=None, segments=None):
     # insert segments
     if segments is not None: 
         start = time.clock()
-        print ""
-        print "inserting", len(segments), "constraints"
+        logging.debug( "" )
+        logging.debug( "inserting " + str(len(segments)) + " constraints")
         constraints = ConstraintInserter(dt)
         constraints.insert(segments)
         end = time.clock()
-        print end - start, "secs"
-        print len(dt.vertices), "vertices"
-        print len(dt.triangles), "triangles"
+        logging.debug( str(end - start) + " secs")
+        logging.debug( str(len(dt.vertices)) + " vertices")
+        logging.debug( str(len(dt.triangles)) + " triangles")
         constraints = len([_ for _ in FiniteEdgeIterator(dt, constraints_only=True)])
-        print constraints, "constraints"
+        logging.debug( str(constraints) + " constraints")
     
     if infos is not None:
-        print ""
-        print "inserting", len(infos), "info"
+        logging.debug( "" )
+        logging.debug( "inserting " + str( len(infos) ) + " info")
         for info in infos:
             dt.vertices[info[0]].info = info[1]
-    print ""
-    print "fin", datetime.now()
+    
+    if infos is not None:
+        logging.debug( "" )
+        logging.debug( "inserting " + str( len(infos) ) + " info")
+        for info in infos:
+            dt.vertices[info[0]].info = info[1]
+    logging.debug( "" )
+    logging.debug( "fin " + str(datetime.now()) )
     if False:
         with open("/tmp/alltris.wkt", "w") as fh:
                     output_triangles([t for t in TriangleIterator(dt, 
@@ -671,7 +798,7 @@ class PointInserter(object):
         for j, pt in enumerate(points):
             self.append(pt)
             if (j % 10000) == 0:
-                print "", datetime.now(), j
+                logging.debug( "" + str( datetime.now() ) + str ( j ) )
             #check_consistency(triangles)
 
     def initialize(self, points):
@@ -695,6 +822,59 @@ class PointInserter(object):
         self.link_2dir(large, 2, self.triangulation.external, 2)
         for v in vertices:
             v.triangle = large
+
+    def append(self, pt):
+        """Appends one point to the triangulation.
+
+        This method assumes that the triangulation is initialized
+        and the point lies inside the bounding box used for initializing.
+        """
+        v = Vertex(pt[0], pt[1])
+        t0 = self.get_triangle_contains(v)
+        # skip insertion of point, if it is on same location already there
+        for corner in t0.vertices:
+            if corner.x == v.x and corner.y == v.y:
+                raise ValueError("Duplicate point found for insertion")
+        self.triangulation.vertices.append(v)
+        a, b, c = t0.vertices
+        # neighbours outside triangle to insert to
+        neighbours = [t0.neighbours[0], t0.neighbours[1]]
+        neighbouridx = [n.neighbours.index(t0) if n is not None else None for n in neighbours]
+        # make new triangles
+        t1 = Triangle(b, c, v)
+        t2 = Triangle(c, a, v)
+        t0.vertices[2] = v
+        # update triangle pointers of vertices
+        a.triangle = t0
+        b.triangle = t0
+        v.triangle = t0
+        c.triangle = t1
+        # link them up properly -- use neighbours outside triangle to insert to
+        # external links
+        # 2 * 2
+        if neighbours[0] is not None:
+            side = neighbouridx[0]
+            self.link_1dir(neighbours[0], side, t1)
+        self.link_1dir(t1, 2, neighbours[0])
+        if neighbours[1] is not None:
+            side = neighbouridx[1]
+            self.link_1dir(neighbours[1], side, t2)
+        self.link_1dir(t2, 2, neighbours[1])
+        # internal links 
+        # 3 * 2
+        self.link_2dir(t0, 0, t1, 1)
+        self.link_2dir(t1, 0, t2, 1)
+        self.link_2dir(t2, 0, t0, 1)
+        #
+        triangles = self.triangulation.triangles
+        triangles.extend([t1, t2])
+        # check if triangles are delaunay, and flip
+        # edges of triangle just inserted into are queued for checking
+        # Delaunay criterion
+        self.queue.append((t2, 2))
+        self.queue.append((t1, 2))
+        self.queue.append((t0, 2))
+        self.delaunay()
 
     def append(self, pt):
         """Appends one point to the triangulation.
@@ -1182,7 +1362,7 @@ class ConstraintInserter(object):
             except Exception, err:
                 print err
             if (j % 10000) == 0:
-                print "", datetime.now(), j
+                logging.debug( "" + str( datetime.now() ) + str( j ) )
         self.remove_empty_triangles()
 
     def remove_empty_triangles(self):
@@ -1190,7 +1370,7 @@ class ConstraintInserter(object):
         the triangles that have one of its vertex members set 
         """
         new = filter(lambda x: not(x.vertices[0] is None or x.vertices[1] is None or x.vertices[2] is None), self.triangulation.triangles)
-        print len(self.triangulation.triangles), "(before) versus", len(new), "(after) triangle clean up"
+        logging.debug( str( len(self.triangulation.triangles) ) + " (before) versus " + str( len(new) ) + " (after) triangle clean up")
         self.triangulation.triangles = new
 
     def insert_constraint(self, P, Q):
@@ -1734,6 +1914,48 @@ class ToPointsAndSegments(object):
         """
         self.segments.append((self._points_idx[start], self._points_idx[end]))
 
+
+class ToPointsAndSegments(object):
+    """Helper class to convert a set of polygons to points and segments.
+    De-dups duplicate points.
+    """
+
+    def __init__(self):
+        self.points = []
+        self.segments = []
+        self.infos = [] 
+        self._points_idx = {}
+
+    def add_polygon(self, polygon):
+        """Add a polygon its points and segments to the global collection
+        """
+        for ring in polygon:
+            for pt in ring:
+                self.add_point(pt)
+            for start, end in zip(ring[:-1], ring[1:]):
+                self.add_segment(start, end)
+
+    def add_point(self, point, info = None):
+        """Add a point and its info.
+
+        Note that if a point already is present,
+        it is not appended nor is its info added to the infos list.
+        """
+        if point not in self._points_idx:
+            idx = len(self.points)
+            self._points_idx[point] = idx
+            self.points.append(point)
+            if info is not None:
+                self.infos.append((idx, info))
+        else:
+            idx = self._points_idx[point]
+        return idx
+
+    def add_segment(self, start, end):
+        """Add a segment. Note that points should have been added before
+        """
+        self.segments.append((self._points_idx[start], self._points_idx[end]))
+
 def test_poly():
     from connection import connection
     db = connection(True)
@@ -1786,6 +2008,15 @@ def test_poly():
             output_vertices(dt.vertices, fh)
         with open("/tmp/interiortris.wkt", "w") as fh:
                     output_triangles([t for t in InteriorTriangleIterator(dt)], fh) 
+    if True:
+        with open("/tmp/alltris.wkt", "w") as fh:
+                    output_triangles([t for t in TriangleIterator(dt, 
+                                                                  finite_only=False)], 
+                                     fh)
+        with open("/tmp/allvertices.wkt", "w") as fh:
+            output_vertices(dt.vertices, fh)
+        with open("/tmp/interiortris.wkt", "w") as fh:
+                    output_triangles([t for t in InteriorTriangleIterator(dt)], fh) 
 
 def test_small():
 #     pts = [(3421275.7657, 3198467.4977), 
@@ -1801,18 +2032,21 @@ def test_small():
     #triangulate([(0,0), (-10, 6)])
 #     triangulate([(0,0), (0, -6)])
 
-if __name__ == "__main__":
-#     test_small()
-    test_poly()
-#     test_square()
-#     test_circle()
-#     test_incremental()
+def test_radan():
+    triangulate([(0,0), (0,1)])
 
+if __name__ == "__main__":
+#    test_small()
+#     test_poly()
+     test_square()
+     test_circle()
+     test_incremental()
+     test_radan()
 
 #     test_cpo()
-#     test_flip()
-#    test_sorted()
+#     test_sorted()
 #     test_tds()
-#    test_sorted()
+#     test_sorted()
 #     main()
 #     test_link()
+
