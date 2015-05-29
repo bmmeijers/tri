@@ -14,9 +14,8 @@ Installation
 Usage
 -----
 
-To triangulate a polygon with one outer and one inner shell:
+To triangulate a polygon with one outer and one inner shell::
 
-    ```
     from tri import ToPointsAndSegments, triangulate
     from tri.delaunay import output_triangles, TriangleIterator
 
@@ -33,9 +32,8 @@ To triangulate a polygon with one outer and one inner shell:
     # write the output
     with open("tris.wkt", "w") as fh:
         output_triangles([t for t in TriangleIterator(dt)], fh)
-    ```
 
-The resulting file is readable with [QGIS](http://qgis.org) (Add Delimited 
+The resulting file is readable with `QGIS <http://qgis.org>`_ (Add Delimited 
 Text Layer).
 
 
@@ -52,22 +50,22 @@ Please add as much information as possible to help us fixing the possible bug.
 We also encourage you to help even more by forking and sending us a pull
 request.
 
-The issue tracker lives [here](https://bitbucket.org/bmmeijers/tri/issues).
+The issue tracker lives `here <https://bitbucket.org/bmmeijers/tri/issues>`_.
 
 
 Maintainers
 -----------
 
-- [Martijn Meijers](https://bitbucket.org/bmmeijers)
+- `Martijn Meijers <https://bitbucket.org/bmmeijers>`_
 
 
 Contributors
 ------------
 
-- [Radan Šuba](https://bitbucket.org/radan/)
+- `Radan Šuba <https://bitbucket.org/radan/>`_
 
 
 License
 -------
 
-[MIT License](https://www.tldrlegal.com/l/mit).
+`MIT License <https://www.tldrlegal.com/l/mit>_`
