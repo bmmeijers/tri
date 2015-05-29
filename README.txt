@@ -39,7 +39,7 @@ Text Layer).
 
 Changelog
 ---------
-See `CHANGES.txt.`
+See `CHANGES.txt`.
 
 
 Bug reports
@@ -68,4 +68,4 @@ Contributors
 License
 -------
 
-`MIT License <https://www.tldrlegal.com/l/mit>_`
+`MIT License <https://www.tldrlegal.com/l/mit>`_
