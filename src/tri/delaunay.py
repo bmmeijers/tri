@@ -269,7 +269,7 @@ class RegionatedTriangleIterator(object):
 
 class StarEdgeIterator(object):
     """Returns iterator over edges in the star of the vertex
-    
+
     The edges are returned in counterclockwise order around the vertex.
     The triangles that the edges are associated with share the vertex 
     that this iterator is constructed with.
