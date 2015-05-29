@@ -4,6 +4,7 @@ Changelog for tri
 0.2 (unreleased)
 ----------------
 
+- Changed print statements to use logging.
 - ToPointsAndSegments class added.
 - ConvexHullIterator added (as alias for TriangleIterator).
 - RegionatedIterator added.
