@@ -51,7 +51,7 @@ setup(
     package_dir = {"": "src"},
     author = "Martijn Meijers",
     author_email = "b.m.meijers@tudelft.nl",
-    description = "Tri - (Constrained) Delaunay Triangulation of Planar Straight Line Graphs",
+    description = "(Constrained) Delaunay Triangulation of Planar Straight Line Graphs (pure Python)",
     url = "https://bitbucket.org/bmmeijers/tri/",
     license = "MIT license",
     ext_modules = EXT_MODULES,
@@ -70,5 +70,7 @@ setup(
         "Programming Language :: Python :: 2.7",
         "Topic :: Software Development :: Libraries",
         "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: Scientific/Engineering :: GIS",
+        "Topic :: Scientific/Engineering :: Information Analysis", 
     ],
 )
