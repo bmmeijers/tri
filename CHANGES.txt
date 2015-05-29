@@ -4,6 +4,8 @@ Changelog for tri
 0.2 (unreleased)
 ----------------
 
+- Removed dependency on predicates package (for now, as this package is not 
+  stable, yet)
 - Changed print statements to use logging.
 - ToPointsAndSegments class added.
 - ConvexHullIterator added (as alias for TriangleIterator).
