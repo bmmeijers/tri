@@ -6,7 +6,7 @@ from tri.delaunay import TriangleIterator
 
 
 def main():
-    logging.basicConfig(filename='myapp.log', level=logging.DEBUG)
+    logging.basicConfig(filename='test_logging.log', level=logging.DEBUG)
     
     pts_segs = ToPointsAndSegments()
     pts_segs.add_polygon([[(0,0), (10,0), (5,10), (0,0)],
