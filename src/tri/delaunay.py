@@ -7,6 +7,7 @@ from random import shuffle
 from itertools import chain
 from datetime import datetime
 from collections import defaultdict
+import logging
 try:
     from predicates import orient2d, incircle
 except ImportError:
@@ -586,9 +587,9 @@ def triangulate(points, infos=None, segments=None):
     # for every point
     if len(points) == 0:
         raise ValueError("we cannot triangulate empty point list")
-    print "start", datetime.now()
-    print ""
-    print "pre-processing"
+    logging.debug( "start "+ str(datetime.now()) )
+    logging.debug( "" )
+    logging.debug( "pre-processing" )
     start = time.clock()
     # points without info
     points = [(pt[0], pt[1], key) for key, pt in enumerate(points)]
@@ -604,21 +605,21 @@ def triangulate(points, infos=None, segments=None):
         if infos is not None:
             infos= [(index_translation[info[0]], info[1]) for info in infos]
     end = time.clock()
-    print end - start, "secs"
-    print ""
-    print "triangulating", len(points), "points"
+    logging.debug( str(end - start) + " secs" )
+    logging.debug( "" )
+    logging.debug( "triangulating " + str(len(points)) + " points" )
     # add points, using incremental construction triangulation builder
     dt = Triangulation()
     start = time.clock()
     incremental = PointInserter(dt)
     incremental.insert(points)
     end = time.clock()
-    print end - start, "secs"
-    print len(dt.vertices), "vertices"
-    print len(dt.triangles), "triangles"
-    print incremental.flips, "flips"
+    logging.debug( str(end - start) + " secs")
+    logging.debug( str(len(dt.vertices)) + " vertices")
+    logging.debug( str(len(dt.triangles)) + " triangles")
+    logging.debug( str(incremental.flips) + " flips")
     if len(dt.vertices) > 0:
-        print float(incremental.flips) / len(dt.vertices), "flips per insert"
+        logging.debug( str( float(incremental.flips) / len(dt.vertices)) + " flips per insert")
 
     # check links of triangles
 #     check_consistency(dt.triangles)
@@ -626,24 +627,30 @@ def triangulate(points, infos=None, segments=None):
     # insert segments
     if segments is not None: 
         start = time.clock()
-        print ""
-        print "inserting", len(segments), "constraints"
+        logging.debug( "" )
+        logging.debug( "inserting " + str(len(segments)) + " constraints")
         constraints = ConstraintInserter(dt)
         constraints.insert(segments)
         end = time.clock()
-        print end - start, "secs"
-        print len(dt.vertices), "vertices"
-        print len(dt.triangles), "triangles"
+        logging.debug( str(end - start) + " secs")
+        logging.debug( str(len(dt.vertices)) + " vertices")
+        logging.debug( str(len(dt.triangles)) + " triangles")
         constraints = len([_ for _ in FiniteEdgeIterator(dt, constraints_only=True)])
-        print constraints, "constraints"
+        logging.debug( str(constraints) + " constraints")
     
     if infos is not None:
-        print ""
-        print "inserting", len(infos), "info"
+        logging.debug( "" )
+        logging.debug( "inserting " + str( len(infos) ) + " info")
         for info in infos:
             dt.vertices[info[0]].info = info[1]
-    print ""
-    print "fin", datetime.now()
+    
+    if infos is not None:
+        logging.debug( "" )
+        logging.debug( "inserting " + str( len(infos) ) + " info")
+        for info in infos:
+            dt.vertices[info[0]].info = info[1]
+    logging.debug( "" )
+    logging.debug( "fin " + str(datetime.now()) )
     if False:
         with open("/tmp/alltris.wkt", "w") as fh:
                     output_triangles([t for t in TriangleIterator(dt, 
@@ -678,7 +685,7 @@ class PointInserter(object):
         for j, pt in enumerate(points):
             self.append(pt)
             if (j % 10000) == 0:
-                print "", datetime.now(), j
+                logging.debug( " " +str( datetime.now() ) + str( j ))
             #check_consistency(triangles)
 
     def initialize(self, points):
@@ -1189,7 +1196,7 @@ class ConstraintInserter(object):
             except Exception, err:
                 print err
             if (j % 10000) == 0:
-                print "", datetime.now(), j
+                logging.debug( " " + str( datetime.now() ) + str( j ) )
         self.remove_empty_triangles()
 
     def remove_empty_triangles(self):
@@ -1197,7 +1204,7 @@ class ConstraintInserter(object):
         the triangles that have one of its vertex members set 
         """
         new = filter(lambda x: not(x.vertices[0] is None or x.vertices[1] is None or x.vertices[2] is None), self.triangulation.triangles)
-        print len(self.triangulation.triangles), "(before) versus", len(new), "(after) triangle clean up"
+        logging.debug( str( len(self.triangulation.triangles) ) + " (before) versus " + str( len(new) ) + " (after) triangle clean up" )
         self.triangulation.triangles = new
 
     def insert_constraint(self, P, Q):
