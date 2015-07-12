@@ -1,0 +1,7 @@
+
+syntax: regexp
+^src/tri\.egg-info$
+syntax: regexp
+^build$
+syntax: regexp
+^dist$
