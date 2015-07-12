@@ -10,7 +10,7 @@ from collections import defaultdict
 import logging
 
 try:
-    from predicates import orient2d, incircle
+    from geompreds import orient2d, incircle
 except ImportError:
     warnings.warn(
     "Robust predicates not available, falling back on non-robust implementation"

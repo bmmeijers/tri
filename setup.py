@@ -41,7 +41,7 @@ else:
 #                   ['src/oseq/_oseq.c']),
     ]
 SCRIPTS = [] 
-REQUIREMENTS = ["predicates"]
+REQUIREMENTS = ["geompreds"]
 DATA_FILES = []
 
 setup(
