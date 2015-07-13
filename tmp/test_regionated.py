@@ -4,7 +4,7 @@ from tri.delaunay import RegionatedTriangleIterator
 class Foo(object):
     def __init__(self):
         pass
-    @profile
+    #@profile
     def main(self):
         pts_segs = ToPointsAndSegments()
         pts_segs.add_polygon([[(0,0), (10,0), (5,10), (0,0)],
@@ -15,7 +15,6 @@ class Foo(object):
                               #[(2,2), (8,2), (6,4), (5,7), (2,2)]
                               #],
                              #)
-
 
         dt = triangulate(pts_segs.points, pts_segs.infos, pts_segs.segments)
 

@@ -639,13 +639,7 @@ def triangulate(points, infos=None, segments=None):
         logging.debug( str(len(dt.triangles)) + " triangles")
         constraints = len([_ for _ in FiniteEdgeIterator(dt, constraints_only=True)])
         logging.debug( str(constraints) + " constraints")
-    
-    if infos is not None:
-        logging.debug( "" )
-        logging.debug( "inserting " + str( len(infos) ) + " info")
-        for info in infos:
-            dt.vertices[info[0]].info = info[1]
-    
+    # insert information for vertices
     if infos is not None:
         logging.debug( "" )
         logging.debug( "inserting " + str( len(infos) ) + " info")
