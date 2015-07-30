@@ -5,7 +5,8 @@ Changelog for tri
 ----------------
 
 - Using robust predicates again.
-- Small bug: vertex info was added twice.
+- Resolved small bug: vertex info was added twice.
+- output_{vertices|triangles} also outputs info property of vertex/triangle.
 
 
 0.2 (2015-05-29)
