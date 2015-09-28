@@ -91,9 +91,17 @@ class FiniteEdgeIterator(object):
         ret = None
         while self.current_idx < len(self.triangulation.triangles):
             triangle = self.triangulation.triangles[self.current_idx]
+            # skip this triangle if it is an infinite triangle
+            if not triangle.is_finite:
+                self.pos = -1
+                self.current_idx += 1
+                continue
             self.pos += 1
             neighbour = triangle.neighbours[self.pos]
-            if id(triangle) < id(neighbour):
+            # output edges only once:
+            # inside the triangulation only the triangle with lowest id its edge is output
+            # along the convex hull we always output the edge
+            if id(triangle) < id(neighbour) or not neighbour.is_finite:
                 if self.constraints_only and triangle.constrained[self.pos]:
                     ret = Edge(triangle, self.pos)
                 elif not self.constraints_only:
@@ -354,17 +362,17 @@ def dest(side):
 
 def output_vertices(V, fh):
     """Output list of vertices as WKT to text file (for QGIS)"""
-    fh.write("id;wkt;info\n")
+    fh.write("id;wkt;finite;info\n")
     for v in V:
-        fh.write("{0};POINT({1});{2}\n".format(id(v), v, v.info))
+        fh.write("{0};POINT({1});{2};{3}\n".format(id(v), v, v.is_finite, v.info))
 
 def output_triangles(T, fh):
     """Output list of triangles as WKT to text file (for QGIS)"""
-    fh.write("id;wkt;n0;n1;n2;v0;v1;v2;info\n")
+    fh.write("id;wkt;n0;n1;n2;v0;v1;v2;finite;info\n")
     for t in T:
         if t is None:
             continue
-        fh.write("{0};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4}\n".format(id(t), t, [id(n) for n in t.neighbours], [id(v) for v in t.vertices], t.info))
+        fh.write("{0};{1};{2[0]};{2[1]};{2[2]};{3[0]};{3[1]};{3[2]};{4};{5}\n".format(id(t), t, [id(n) for n in t.neighbours], [id(v) for v in t.vertices], t.is_finite, t.info))
 
 def output_edges(E, fh):
     fh.write("id;side;wkt\n")
