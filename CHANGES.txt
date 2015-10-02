@@ -4,7 +4,9 @@ Changelog for tri
 0.3.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fix FiniteEdgeIterator to indeed only output finite edges.
+- output_{vertices|triangles} also outputs is_finite property of vertex/
+  triangle.
 
 
 0.3 (2015-07-30)
