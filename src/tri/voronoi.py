@@ -77,7 +77,7 @@ def main():
 
     # FIXME: does not work with this dataset yet, as the vertex density is not
     # high enough: should add more vertices (densify)
-    with open('/home/author1_givenname/workspace/splitarea/data/sandro/poly.geojson') as fh:
+    with open('/home/martijn/workspace/splitarea/data/sandro/poly.geojson') as fh:
         c = json.loads(fh.read())
     conv = ToPointsAndSegments()
     poly = c['features'][0]['geometry']['coordinates']
