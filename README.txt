@@ -56,13 +56,13 @@ The issue tracker lives `here <https://bitbucket.org/bmmeijers/tri/issues>`_.
 Maintainers
 -----------
 
-- `Martijn Meijers <https://bitbucket.org/bmmeijers>`_
+- `author1_fullname <https://bitbucket.org/bmmeijers>`_
 
 
 Contributors
 ------------
 
-- `Radan Šuba <https://bitbucket.org/radan/>`_
+- `author2_cgivenname Šuba <https://bitbucket.org/author2_givenname/>`_
 
 
 License

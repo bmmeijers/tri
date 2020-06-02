@@ -3,7 +3,7 @@
 
 __version__ = '0.3.1.dev0'
 __license__ = 'MIT License'
-__author__ = 'Martijn Meijers'
+__author__ = 'author1_fullname'
 
 from delaunay import triangulate, ToPointsAndSegments #, polygon_as_points_and_segments
 

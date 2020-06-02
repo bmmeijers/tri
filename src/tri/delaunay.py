@@ -597,9 +597,9 @@ def triangulate(points, infos=None, segments=None):
     # for every point
     if len(points) == 0:
         raise ValueError("we cannot triangulate empty point list")
-    logging.debug( "start "+ str(datetime.now()) )
-    logging.debug( "" )
-    logging.debug( "pre-processing" )
+    #logging.debug( "start "+ str(datetime.now()) )
+    #logging.debug( "" )
+    #logging.debug( "pre-processing" )
     start = time.clock()
     # points without info
     points = [(pt[0], pt[1], key) for key, pt in enumerate(points)]
@@ -615,21 +615,21 @@ def triangulate(points, infos=None, segments=None):
         if infos is not None:
             infos= [(index_translation[info[0]], info[1]) for info in infos]
     end = time.clock()
-    logging.debug( str(end - start) + " secs" )
-    logging.debug( "" )
-    logging.debug( "triangulating " + str(len(points)) + " points" )
+    #logging.debug( str(end - start) + " secs" )
+    #logging.debug( "" )
+    #logging.debug( "triangulating " + str(len(points)) + " points" )
     # add points, using incremental construction triangulation builder
     dt = Triangulation()
     start = time.clock()
     incremental = PointInserter(dt)
     incremental.insert(points)
     end = time.clock()
-    logging.debug( str(end - start) + " secs")
-    logging.debug( str(len(dt.vertices)) + " vertices")
-    logging.debug( str(len(dt.triangles)) + " triangles")
-    logging.debug( str(incremental.flips) + " flips")
-    if len(dt.vertices) > 0:
-        logging.debug( str( float(incremental.flips) / len(dt.vertices)) + " flips per insert")
+    #logging.debug( str(end - start) + " secs")
+    #logging.debug( str(len(dt.vertices)) + " vertices")
+    #logging.debug( str(len(dt.triangles)) + " triangles")
+    #logging.debug( str(incremental.flips) + " flips")
+#     if len(dt.vertices) > 0:
+#         logging.debug( str( float(incremental.flips) / len(dt.vertices)) + " flips per insert")
 
     # check links of triangles
 #     check_consistency(dt.triangles)
@@ -637,24 +637,24 @@ def triangulate(points, infos=None, segments=None):
     # insert segments
     if segments is not None: 
         start = time.clock()
-        logging.debug( "" )
-        logging.debug( "inserting " + str(len(segments)) + " constraints")
+        #logging.debug( "" )
+        #logging.debug( "inserting " + str(len(segments)) + " constraints")
         constraints = ConstraintInserter(dt)
         constraints.insert(segments)
         end = time.clock()
-        logging.debug( str(end - start) + " secs")
-        logging.debug( str(len(dt.vertices)) + " vertices")
-        logging.debug( str(len(dt.triangles)) + " triangles")
+        #logging.debug( str(end - start) + " secs")
+        #logging.debug( str(len(dt.vertices)) + " vertices")
+        #logging.debug( str(len(dt.triangles)) + " triangles")
         constraints = len([_ for _ in FiniteEdgeIterator(dt, constraints_only=True)])
-        logging.debug( str(constraints) + " constraints")
+        #logging.debug( str(constraints) + " constraints")
     # insert information for vertices
     if infos is not None:
-        logging.debug( "" )
-        logging.debug( "inserting " + str( len(infos) ) + " info")
+        #logging.debug( "" )
+        #logging.debug( "inserting " + str( len(infos) ) + " info")
         for info in infos:
             dt.vertices[info[0]].info = info[1]
-    logging.debug( "" )
-    logging.debug( "fin " + str(datetime.now()) )
+    #logging.debug( "" )
+    #logging.debug( "fin " + str(datetime.now()) )
     if False:
         with open("/tmp/alltris.wkt", "w") as fh:
                     output_triangles([t for t in TriangleIterator(dt, 
@@ -688,8 +688,8 @@ class PointInserter(object):
         self.initialize(points)
         for j, pt in enumerate(points):
             self.append(pt)
-            if (j % 10000) == 0:
-                logging.debug( " " +str( datetime.now() ) + str( j ))
+#             if (j % 10000) == 0:
+#                 logging.debug( " " +str( datetime.now() ) + str( j ))
             #check_consistency(triangles)
 
     def initialize(self, points):
@@ -1199,8 +1199,8 @@ class ConstraintInserter(object):
                 self.insert_constraint(p, q)
             except Exception, err:
                 print err
-            if (j % 10000) == 0:
-                logging.debug( " " + str( datetime.now() ) + str( j ) )
+#             if (j % 10000) == 0:
+#                 logging.debug( " " + str( datetime.now() ) + str( j ) )
         self.remove_empty_triangles()
 
     def remove_empty_triangles(self):
@@ -1208,7 +1208,7 @@ class ConstraintInserter(object):
         the triangles that have one of its vertex members set 
         """
         new = filter(lambda x: not(x.vertices[0] is None or x.vertices[1] is None or x.vertices[2] is None), self.triangulation.triangles)
-        logging.debug( str( len(self.triangulation.triangles) ) + " (before) versus " + str( len(new) ) + " (after) triangle clean up" )
+        #logging.debug( str( len(self.triangulation.triangles) ) + " (before) versus " + str( len(new) ) + " (after) triangle clean up" )
         self.triangulation.triangles = new
 
     def insert_constraint(self, P, Q):
@@ -1717,7 +1717,7 @@ class ToPointsAndSegments(object):
     """
 
     def __init__(self):
-        self.points = []
+        self.points = []        
         self.segments = []
         self.infos = [] 
         self._points_idx = {}
@@ -1737,7 +1737,7 @@ class ToPointsAndSegments(object):
         Note that if a point already is present,
         it is not appended nor is its info added to the infos list.
         """
-        if point not in self._points_idx:
+        if point not in self._points_idx:  #e.g., point: POINT(3559000.0 5903000.0)
             idx = len(self.points)
             self._points_idx[point] = idx
             self.points.append(point)
@@ -1747,10 +1747,37 @@ class ToPointsAndSegments(object):
             idx = self._points_idx[point]
         return idx
 
-    def add_segment(self, start, end):
+    def add_segment(self, start_pt, end_pt):
         """Add a segment. Note that points should have been added before
         """
-        self.segments.append((self._points_idx[start], self._points_idx[end]))
+        seg = (self._points_idx[start_pt], self._points_idx[end_pt])
+        self.segments.append(seg)
+        return seg
+
+    def prepare_triangulation_input(self, lines):
+        segs_lt = []
+        for line in lines:
+#             print 
+            segs = []
+            for pt in line:  #e.g. pt: POINT(3558500.0 5900000.0)
+                self.add_point(pt)
+            for i, j in zip(xrange(0, len(line)-1), xrange(1, len(line))):
+                 #e.g., line[i], line[j]: POINT(3558500.0 5900000.0) POINT(3560000.0 5901000.0)
+                segs.append(self.add_segment(line[i], line[j]))
+            segs_lt.append(segs)
+        return segs_lt 
+
+    def add_line(self, line):
+        segs = []
+        for pt in line:  #e.g. pt: POINT(3558500.0 5900000.0)
+            self.add_point(pt)
+        for i, j in zip(xrange(0, len(line)-1), xrange(1, len(line))):
+             #e.g., line[i], line[j]: POINT(3558500.0 5900000.0) POINT(3560000.0 5901000.0)
+            segs.append(self.add_segment(line[i], line[j]))
+        return segs
+
+#     def get_segs_from_line(self, line):
+                
 
 def test_poly():
     from connection import connection
