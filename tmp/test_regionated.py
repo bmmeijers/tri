@@ -1,14 +1,17 @@
-from tri import ToPointsAndSegments, triangulate
-from tri.delaunay import output_triangles, TriangleIterator
-from tri.delaunay import RegionatedTriangleIterator
+from tri.delaunay.helpers import ToPointsAndSegments
+from tri.delaunay import triangulate
+from tri.delaunay.inout import output_triangles
+from tri.delaunay.iter import RegionatedTriangleIterator, TriangleIterator
+
+
 class Foo(object):
     def __init__(self):
         pass
     #@profile
     def main(self):
         pts_segs = ToPointsAndSegments()
-        pts_segs.add_polygon([[(0,0), (10,0), (5,10), (0,0)],
-                              [(0,0), (8,2), (6,4), (5,7), (0,0)]
+        pts_segs.add_polygon([[(0, 0), (10, 0), (5, 10), (0, 0)],
+                              [(0, 0), (8, 2), (6, 4), (5, 7), (0, 0)]
                               ],
                              )
         #pts_segs.add_polygon([[(10,0), (15,10), (5,10), (10,0)],
@@ -18,8 +21,8 @@ class Foo(object):
 
         dt = triangulate(pts_segs.points, pts_segs.infos, pts_segs.segments)
 
-        with open("/tmp/alltris.wkt", "w") as fh:
-            output_triangles([t for t in TriangleIterator(dt)], fh)
+        with open("/tmp/all_tris.wkt", "w") as fh:
+            output_triangles(dt.triangles, fh)
 
         with open("/tmp/path.wkt", "w") as fh:
             fh.write("i;group;depth;wkt\n")
@@ -32,4 +35,5 @@ class Foo(object):
             for t in it.later:
                 fh.write("{0}\n".format(t))
 
-Foo().main()
+if __name__ == "__main__":
+    Foo().main()
