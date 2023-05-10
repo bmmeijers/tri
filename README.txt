@@ -48,25 +48,25 @@ See `CHANGES.txt`.
 
 Bug reports
 -----------
-If you discover any bugs, feel free to create an issue on Bitbucket.
+If you discover any bugs, feel free to create an issue.
 
 Please add as much information as possible to help us fixing the possible bug.
 We also encourage you to help even more by forking and sending us a pull
 request.
 
-The issue tracker lives `here <https://bitbucket.org/bmmeijers/tri/issues>`_.
+The issue tracker lives `here <https://github.com/bmmeijers/tri/issues>`_.
 
 
 Maintainers
 -----------
 
-- `Martijn Meijers <https://bitbucket.org/bmmeijers>`_
+- `Martijn Meijers <https://github.com/bmmeijers>`_
 
 
 Contributors
 ------------
 
-- `Radan Šuba <https://bitbucket.org/radan/>`_
+- Radan Šuba
 
 
 License
