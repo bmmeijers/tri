@@ -16,8 +16,11 @@ Usage
 
 To triangulate a polygon with one outer and one inner shell::
 
-    from tri import ToPointsAndSegments, triangulate
-    from tri.delaunay import output_triangles, TriangleIterator
+```
+    from tri.delaunay.helpers import ToPointsAndSegments
+    from tri.delaunay import triangulate
+    from tri.delaunay.inout import output_triangles
+    from tri.delaunay.iter import TriangleIterator
 
     # create points and segments for triangulation
     pts_segs = ToPointsAndSegments()
@@ -32,6 +35,7 @@ To triangulate a polygon with one outer and one inner shell::
     # write the output
     with open("tris.wkt", "w") as fh:
         output_triangles([t for t in TriangleIterator(dt)], fh)
+```
 
 The resulting file is readable with `QGIS <http://qgis.org>`_ (Add Delimited 
 Text Layer).
